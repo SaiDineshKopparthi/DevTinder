@@ -1,23 +1,36 @@
 const express = require('express');
-const { adminAuth, userAuth } = require('./middlewares/auth')
+const { connectDB } = require("./config/database")
+const User = require("./Models/user")
 
 const app = express();
 
-app.use("/admin", adminAuth);
 
-app.get("/getUserData", (req, res) => {
-    try{
-        throw new Error("Gotcha!");
-    } catch (err) {
-        res.status(500).send("Some Error: Contact Support Team.")
+app.post("/signup", async (req, res) => {
+
+    //Create a new "user" document using "User", model
+    const user = new User({
+        firstName: "Dinesh",
+        lastName: "Kopparthi",
+        emailID: "kopparthi.dinesh42224@gmail.com",
+        password: "Google@Micro"
+    });
+
+    try {
+        await user.save();
+        res.send("User Added in the Collection!");
+    } catch (error) {
+        res.status(400).send("Error while creating the user: " + error.message);
     }
-    
-});
 
-app.use("/", (err, req, res, next) => {
-    if(err) {
-        res.status(500).send(`Something went wrong - ${err}`);
-    }
-});
+   
+})
 
-app.listen(3000, () => console.log("Listening on port 3000"));
+//Connecting to Database and Making the server listen for requests
+connectDB().then(() => {
+    console.log("Connection to MongoDB successful");
+    app.listen(3000, () => console.log("Listening on port 3000"));
+}).catch(error => {
+    console.log("Problem connecting to MongoDB");
+})
+
+//const { adminAuth, userAuth } = require('./middlewares/auth')
