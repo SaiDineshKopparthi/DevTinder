@@ -4,16 +4,12 @@ const User = require("./Models/user")
 
 const app = express();
 
+app.use(express.json())
 
 app.post("/signup", async (req, res) => {
 
     //Create a new "user" document using "User", model
-    const user = new User({
-        firstName: "Dinesh",
-        lastName: "Kopparthi",
-        emailID: "kopparthi.dinesh42224@gmail.com",
-        password: "Google@Micro"
-    });
+    const user = new User(req.body);
 
     try {
         await user.save();
@@ -21,8 +17,6 @@ app.post("/signup", async (req, res) => {
     } catch (error) {
         res.status(400).send("Error while creating the user: " + error.message);
     }
-
-   
 })
 
 //Connecting to Database and Making the server listen for requests
@@ -32,5 +26,3 @@ connectDB().then(() => {
 }).catch(error => {
     console.log("Problem connecting to MongoDB");
 })
-
-//const { adminAuth, userAuth } = require('./middlewares/auth')
