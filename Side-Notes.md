@@ -1,0 +1,14 @@
+- AppSync
+- AWS Dynamo
+- AWS Lambda
+- AWS S3
+- AWS - SNS/SQS
+- AWS CDK/Cloud Formation
+- JavaScript (ES6)
+- Node.js
+- React js
+- Test automation 
+    - Playwright
+    - Jest
+    - Mocha
+    - WebDriver
