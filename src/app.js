@@ -1,20 +1,55 @@
 const express = require("express");
-const { connectDB } = require("./config/database");
+const bcrypt = require("bcrypt");
 const User = require("./Models/user");
-
+const { connectDB } = require("./config/database");
+const { validateSignUpData } = require("./utils/validation.js");
 const app = express();
 
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
-  //Create a new "user" document using "User", model
-  const user = new User(req.body);
-
   try {
+    //Validation of the data
+    validateSignUpData(req);
+
+    const { firstName, lastName, emailID, password } = req.body;
+
+    //Encrypting a password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    //Create a new "user" document using "User" model
+    const user = new User({
+      firstName,
+      lastName,
+      emailID,
+      password: passwordHash,
+    });
+
     await user.save();
     res.send("User Added in the Collection!");
   } catch (error) {
     res.status(400).send("Error while creating the user: " + error.message);
+  }
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    const { emailID, password } = req.body;
+
+    const user = await User.findOne({ emailID: emailID });
+
+    if (!user) {
+      throw new Error("Invalid Credentials");
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (isPasswordValid) {
+      res.send("Login Successful");
+    } else {
+      throw new Error("Invalid Credentials");
+    }
+  } catch (error) {
+    res.status(400).send("Error while logging the user: " + error.message);
   }
 });
 
@@ -36,7 +71,7 @@ app.get("/user", async (req, res) => {
     const user = await User.findOne({ emailID: emailID });
 
     if (!user) {
-      res.send("No user found with the given email");
+      res.send("No user found!");
     } else {
       res.send(user);
     }
@@ -59,8 +94,8 @@ app.patch("/user/:userId", async (req, res) => {
     if (!isUpdateAllowed) {
       throw new Error("Cannot update one of these fields");
     }
-    if (data.skills?.length > 10){
-        throw new Error("Skills cannot be more than 10")
+    if (data.skills?.length > 10) {
+      throw new Error("Skills cannot be more than 10");
     }
     await User.findByIdAndUpdate({ _id: id }, data, {
       runValidators: true,
@@ -73,13 +108,12 @@ app.patch("/user/:userId", async (req, res) => {
 
 app.delete("/user", async (req, res) => {
   const userID = req.body.userID;
-  console.log(userID);
 
   try {
     await User.findByIdAndDelete({ _id: userID });
     res.send("User deleted from the collection!");
   } catch (error) {
-    res.status(400).send("Something went wrong");
+    res.status(400).send(`Something went wrong: ${error.messages}`);
   }
 });
 
