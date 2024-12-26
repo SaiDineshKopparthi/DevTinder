@@ -1,11 +1,17 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+
 const User = require("./Models/user");
 const { connectDB } = require("./config/database");
 const { validateSignUpData } = require("./utils/validation.js");
+const { userAuth } = require("./middlewares/auth.js");
+
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
   try {
@@ -44,6 +50,14 @@ app.post("/login", async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (isPasswordValid) {
+      //Generate a JWT token
+      const token = await jwt.sign({ _id: user._id }, "Sweeney80085Sydney", {
+        expiresIn: "3d",
+      });
+
+      //Sending JWT Token as Cookies
+      res.cookie("token", token, {expires: newDate(Date.now() + (3 * 24 * 36000))});
+
       res.send("Login Successful");
     } else {
       throw new Error("Invalid Credentials");
@@ -53,67 +67,24 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/feed", async (req, res) => {
+app.get("/profile", userAuth, async (req, res) => {
   try {
-    const users = await User.find({});
-    if (users.length === 0) {
-      res.send("No users available");
-    } else {
-      res.send(users);
-    }
-  } catch (error) {}
-});
-
-app.get("/user", async (req, res) => {
-  const emailID = req.body.emailID;
-
-  try {
-    const user = await User.findOne({ emailID: emailID });
-
-    if (!user) {
-      res.send("No user found!");
-    } else {
-      res.send(user);
-    }
+    res.send(req.user);
   } catch (error) {
-    res.status(400).send("Something went wrong");
+    res.status(400).send("Error: " + error.message);
   }
 });
 
-app.patch("/user/:userId", async (req, res) => {
-  const id = req.params?.userId;
-  const data = req.body;
-
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
   try {
-    const ALLOWED_UPDATES = ["photoURL", "gender", "age", "skills"];
-
-    const isUpdateAllowed = Object.keys(data).every((k) =>
-      ALLOWED_UPDATES.includes(k)
-    );
-
-    if (!isUpdateAllowed) {
-      throw new Error("Cannot update one of these fields");
+    if (!req.user) {
+      throw new Error("No user access");
     }
-    if (data.skills?.length > 10) {
-      throw new Error("Skills cannot be more than 10");
-    }
-    await User.findByIdAndUpdate({ _id: id }, data, {
-      runValidators: true,
-    });
-    res.send("User data updated successfully");
+    res.send(`${req.user.firstName} has sent a connection request.`);
   } catch (error) {
-    res.status(400).send(`Something went wrong: ${error.message}`);
-  }
-});
-
-app.delete("/user", async (req, res) => {
-  const userID = req.body.userID;
-
-  try {
-    await User.findByIdAndDelete({ _id: userID });
-    res.send("User deleted from the collection!");
-  } catch (error) {
-    res.status(400).send(`Something went wrong: ${error.messages}`);
+    res
+      .status(400)
+      .send("Error sending the connection request: " + error.message);
   }
 });
 
@@ -126,3 +97,67 @@ connectDB()
   .catch((error) => {
     console.log("Problem connecting to MongoDB");
   });
+
+// app.get("/feed", async (req, res) => {
+//   try {
+//     const users = await User.find({});
+//     if (users.length === 0) {
+//       res.send("No users available");
+//     } else {
+//       res.send(users);
+//     }
+//   } catch (error) {}
+// });
+
+// app.get("/user", async (req, res) => {
+//   const emailID = req.body.emailID;
+
+//   try {
+//     const user = await User.findOne({ emailID: emailID });
+
+//     if (!user) {
+//       res.send("No user found!");
+//     } else {
+//       res.send(user);
+//     }
+//   } catch (error) {
+//     res.status(400).send("Something went wrong");
+//   }
+// });
+
+// app.patch("/user/:userId", async (req, res) => {
+//   const id = req.params?.userId;
+//   const data = req.body;
+
+//   try {
+//     const ALLOWED_UPDATES = ["photoURL", "gender", "age", "skills"];
+
+//     const isUpdateAllowed = Object.keys(data).every((k) =>
+//       ALLOWED_UPDATES.includes(k)
+//     );
+
+//     if (!isUpdateAllowed) {
+//       throw new Error("Cannot update one of these fields");
+//     }
+//     if (data.skills?.length > 10) {
+//       throw new Error("Skills cannot be more than 10");
+//     }
+//     await User.findByIdAndUpdate({ _id: id }, data, {
+//       runValidators: true,
+//     });
+//     res.send("User data updated successfully");
+//   } catch (error) {
+//     res.status(400).send(`Something went wrong: ${error.message}`);
+//   }
+// });
+
+// app.delete("/user", async (req, res) => {
+//   const userID = req.body.userID;
+
+//   try {
+//     await User.findByIdAndDelete({ _id: userID });
+//     res.send("User deleted from the collection!");
+//   } catch (error) {
+//     res.status(400).send(`Something went wrong: ${error.messages}`);
+//   }
+// });
