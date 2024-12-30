@@ -4,12 +4,11 @@ const { userAuth } = require("../middlewares/auth.js");
 
 const router = express.Router();
 
-router.post("/sendConnectionRequest", userAuth, async (req, res) => {
+router.post("/request/send/interested/:toUserId", userAuth, async (req, res) => {
   try {
-    if (!req.user) {
-      throw new Error("No user access");
-    }
-    res.send(`${req.user.firstName} has sent a connection request.`);
+    const fromUserId = req.user._id;
+    const toUserId = req.params.toUserId;
+    
   } catch (error) {
     res
       .status(400)
