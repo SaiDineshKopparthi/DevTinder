@@ -36,9 +36,9 @@ router.post("/login", async (req, res) => {
     const { emailID, password } = req.body;
 
     const user = await User.findOne({ emailID: emailID });
-
+    
     if (!user) {
-      throw new Error("Invalid Credentials");
+      throw new Error("Invalid Username");
     }
     const isPasswordValid = await user.validatePassword(password);
 
@@ -53,7 +53,7 @@ router.post("/login", async (req, res) => {
 
       res.send("Login Successful");
     } else {
-      throw new Error("Invalid Credentials");
+      throw new Error("Invalid Password");
     }
   } catch (error) {
     res.status(400).send("Error while logging the user: " + error.message);
